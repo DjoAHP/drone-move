@@ -14,6 +14,7 @@
   let editingVideoBlob = null; // holds the currently selected/kept video blob for the form
   let editingThumb = null;
   let previewCleanupTimer = null;
+  let formDirty = false;
 
   const MODE_LABELS = { cine: "Ciné", normal: "Normal", sport: "Sport" };
 const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
@@ -44,6 +45,11 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  function debounce(fn, ms) {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+  }
+
   function showToast(msg, ms = 2600) {
     const el = $("#toast");
     el.textContent = msg;
@@ -53,13 +59,47 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   }
 
   function openModal(id) { $("#" + id).hidden = false; document.body.style.overflow = "hidden"; }
-  function closeModal(id) { $("#" + id).hidden = true; if (!$$(".modal-overlay:not([hidden])").length) document.body.style.overflow = ""; }
+  function closeModal(id) {
+    if (id === "modal-form" && formDirty) {
+      if (!confirm("Vous avez des modifications non sauvegardées. Voulez-vous vraiment fermer ?")) return;
+    }
+    $("#" + id).hidden = true;
+    if (!$$(".modal-overlay:not([hidden])").length) document.body.style.overflow = "";
+  }
 
   document.addEventListener("click", (e) => {
     const closeTarget = e.target.closest("[data-close]");
     if (closeTarget) closeModal(closeTarget.dataset.close);
     if (e.target.classList && e.target.classList.contains("modal-overlay")) {
       closeModal(e.target.id);
+    }
+  });
+
+  // ---------- Focus trap + Escape key for modals ----------
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const topModal = document.querySelector(".modal-overlay:not([hidden]), .video-overlay:not([hidden])");
+      if (topModal) {
+        e.preventDefault();
+        closeModal(topModal.id);
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const topModal = document.querySelector(".modal-overlay:not([hidden]), .video-overlay:not([hidden])");
+    if (!topModal) return;
+    const focusable = topModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
     }
   });
 
@@ -451,27 +491,30 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
 
   // ---------- Hover / long-press video preview ----------
   function wireThumbPreview(thumbBtn, movement) {
-    if (!movement.videoBlob) return;
+    if (!movement.thumbnail) return;
     let previewVideo = null;
-    let objectUrl = null;
     let longPressTimer = null;
+    let cachedBlob = null;
 
-    function startPreview() {
+    async function startPreview() {
       if (previewVideo) return;
-      objectUrl = URL.createObjectURL(movement.videoBlob);
+      if (!cachedBlob) {
+        const full = await MovementStore.get(movement.id);
+        cachedBlob = full?.videoBlob || null;
+      }
+      if (!cachedBlob) return;
+      const objectUrl = URL.createObjectURL(cachedBlob);
       previewVideo = document.createElement("video");
       previewVideo.src = objectUrl;
       previewVideo.muted = true;
       previewVideo.loop = true;
       previewVideo.playsInline = true;
       previewVideo.autoplay = true;
-      // Prevent preview video from intercepting clicks
       previewVideo.style.pointerEvents = "none";
       const img = thumbBtn.querySelector("img, .thumb-placeholder");
       if (img) img.style.display = "none";
       thumbBtn.appendChild(previewVideo);
       thumbBtn.dataset.previewing = "1";
-      // Store objectUrl on element for cleanup
       thumbBtn._previewObjectUrl = objectUrl;
       previewVideo.play().catch(() => {});
     }
@@ -504,11 +547,13 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   }
 
   // ---------- Video fullscreen ----------
-  function openVideoFullscreen(movement) {
-    if (!movement.videoBlob) { showToast("Aucune vidéo pour ce mouvement."); return; }
+  async function openVideoFullscreen(movement) {
+    const full = await MovementStore.get(movement.id);
+    const blob = full?.videoBlob;
+    if (!blob) { showToast("Aucune vidéo pour ce mouvement."); return; }
     const overlay = $("#video-overlay");
     const player = $("#video-player");
-    const url = URL.createObjectURL(movement.videoBlob);
+    const url = URL.createObjectURL(blob);
     player.src = url;
     overlay.hidden = false;
     player.play().catch(() => {});
@@ -683,6 +728,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     setSegmented("f-plantype", "manual");
     togglePlanBlocks("manual");
     toggleQuickshotFields("dronie");
+    formDirty = false;
     // Manette SVG will be loaded when manual block is shown
   }
 
@@ -785,6 +831,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
 
   $("#movement-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    formDirty = false;
     const id = $("#f-id").value || uid();
     const name = $("#f-name").value.trim();
     if (!name) { showToast("Le nom du mouvement est requis."); return; }
@@ -839,10 +886,15 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     showToast(existingId ? "Mouvement modifié." : "Mouvement ajouté.");
   });
 
+  // Track form changes for unsaved warning
+  $("#movement-form").addEventListener("input", () => { formDirty = true; });
+  $("#movement-form").addEventListener("change", () => { formDirty = true; });
+
   // ---------- Filters / search / sort ----------
+  const debouncedRender = debounce(renderList, 200);
   $("#search-input").addEventListener("input", (e) => {
     currentSearch = e.target.value;
-    renderList();
+    debouncedRender();
   });
 
   $("#filter-chips").addEventListener("click", (e) => {
@@ -898,8 +950,9 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       const zip = new JSZip();
       const videosFolder = zip.folder("videos");
       const data = [];
+      const allFull = await MovementStore.getAll();
 
-      for (const m of allMovements) {
+      for (const m of allFull) {
         const entry = { ...m };
         delete entry.videoBlob;
         if (m.videoBlob) {
@@ -977,7 +1030,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
 
   // ---------- Load / init ----------
   async function reloadMovements() {
-    allMovements = await MovementStore.getAll();
+    allMovements = await MovementStore.getAllMetadata();
     renderList();
   }
 

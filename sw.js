@@ -1,14 +1,15 @@
 /* sw.js — cache l'app shell de DroneMove pour un usage hors ligne */
 
-const CACHE_NAME = "dronemove-shell-v4";
+const CACHE_NAME = "dronemove-shell-v5";
 const SHELL_FILES = [
   "./",
-  "./index.html?v=3",
+  "./index.html?v=4",
   "./style.css",
   "./app.js",
   "./db.js",
-  "./manifest.json?v=3",
-  "./icons/icon-maskable.svg?v=3"
+  "./manifest.json?v=4",
+  "./icons/icon-maskable.svg?v=3",
+  "./vendor/jszip.min.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -29,13 +30,6 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-
-  // On ne met jamais en cache les appels au CDN de JSZip (utilisé seulement à l'export/import) :
-  // on tente le réseau, sinon on laisse échouer sans casser le reste de l'app.
-  if (req.url.includes("cdn.jsdelivr.net")) {
-    event.respondWith(fetch(req).catch(() => caches.match(req)));
-    return;
-  }
 
   if (req.method !== "GET") return;
 

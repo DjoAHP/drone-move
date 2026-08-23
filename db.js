@@ -35,6 +35,14 @@ const MovementStore = {
     });
   },
 
+  async getAllMetadata() {
+    const all = await this.getAll();
+    return all.map(m => {
+      const { videoBlob, ...meta } = m;
+      return meta;
+    });
+  },
+
   async get(id) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -77,5 +85,5 @@ const MovementStore = {
 };
 
 function uid() {
-  return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  return "m_" + crypto.randomUUID();
 }
