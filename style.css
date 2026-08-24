@@ -720,6 +720,10 @@ button, input, select, textarea {
   font-size: var(--text-base);
 }
 
+.presentation-no-video[hidden] {
+  display: none !important;
+}
+
 /* Infos */
 .presentation-info {
   width: 100%;
