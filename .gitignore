@@ -1,0 +1,8 @@
+# Local Netlify folder
+.netlify
+
+# Superpowers development artifacts
+.superpowers/
+
+# Node modules (if using npx/npm locally)
+node_modules/
