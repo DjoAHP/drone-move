@@ -67,6 +67,31 @@
       </button>
     </div>
 
+    <!-- Plan type filter -->
+    <div class="filters-row filter-row-cascade" id="filter-plan-row">
+      <div class="chips" id="filter-plan-chips">
+        <button class="chip chip-active" data-plan="all">Tous</button>
+        <button class="chip" data-plan="manual">Manuel</button>
+        <button class="chip" data-plan="quickshot">QuickShots</button>
+      </div>
+    </div>
+
+    <!-- QuickShots submode filter -->
+    <div class="filters-row filter-row-cascade" id="filter-qs-row" hidden>
+      <div class="chips chips-wrap" id="filter-qs-chips">
+        <button class="chip chip-active" data-qs="all">Tous</button>
+        <button class="chip" data-qs="dronie">Dronie</button>
+        <button class="chip" data-qs="rocket">Rocket</button>
+        <button class="chip" data-qs="circle">Circle</button>
+        <button class="chip" data-qs="boomerang">Boomerang</button>
+        <button class="chip" data-qs="helix">Helix</button>
+        <button class="chip" data-qs="asteroid">Asteroid</button>
+      </div>
+    </div>
+
+    <!-- Results counter -->
+    <div class="results-count" id="results-count"></div>
+
     <!-- LIST -->
     <main id="list-container" class="list-container"></main>
 
