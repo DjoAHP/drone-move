@@ -1312,6 +1312,9 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
         showToast("Erreur de base de données. Vide le cache du navigateur.");
       }
     }
+    if (MovementStore.isMemoryMode()) {
+      showToast("Mode mémoire : les données ne seront pas sauvegardées après rechargement.", 5000);
+    }
     // Pre-load manette SVG so it's ready when form opens
     loadManetteSVG();
     if ("serviceWorker" in navigator) {

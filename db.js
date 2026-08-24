@@ -1,12 +1,15 @@
-/* db.js — accès IndexedDB pour DroneMove */
+/* db.js — accès IndexedDB pour DroneMove (avec fallback mémoire) */
 
 const DB_NAME = "dronemove-db";
 const DB_VERSION = 1;
 const STORE = "movements";
 
 let dbPromise = null;
+let useMemoryFallback = false;
+let memoryStore = new Map();
 
 function openDB() {
+  if (useMemoryFallback) return Promise.reject(new Error("memory-only"));
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -24,19 +27,42 @@ function openDB() {
   return dbPromise;
 }
 
-/** Ferme et supprime la base corrompue, puis réessaie */
 async function resetDB() {
   dbPromise = null;
   return new Promise((resolve, reject) => {
     const del = indexedDB.deleteDatabase(DB_NAME);
-    del.onsuccess = () => resolve();
+    del.onsuccess = () => setTimeout(resolve, 200); // attendre propagation
     del.onerror = () => reject(del.error);
   });
 }
 
+async function openDBWithRetry() {
+  try {
+    return await openDB();
+  } catch (err) {
+    console.warn("IndexedDB open failed, resetting:", err);
+    try {
+      await resetDB();
+      dbPromise = null;
+      return await openDB();
+    } catch (err2) {
+      console.warn("Reset failed, falling back to memory:", err2);
+      useMemoryFallback = true;
+      return null;
+    }
+  }
+}
+
+function memGetAll() { return [...memoryStore.values()]; }
+function memGet(id) { return memoryStore.get(id) || null; }
+function memPut(m) { memoryStore.set(m.id, m); return m; }
+function memDelete(id) { memoryStore.delete(id); }
+function memClear() { memoryStore.clear(); }
+
 const MovementStore = {
   async getAll() {
-    const db = await openDB();
+    const db = await openDBWithRetry();
+    if (!db) return memGetAll();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, "readonly");
       const req = tx.objectStore(STORE).getAll();
@@ -54,7 +80,8 @@ const MovementStore = {
   },
 
   async get(id) {
-    const db = await openDB();
+    const db = await openDBWithRetry();
+    if (!db) return memGet(id);
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, "readonly");
       const req = tx.objectStore(STORE).get(id);
@@ -64,7 +91,8 @@ const MovementStore = {
   },
 
   async put(movement) {
-    const db = await openDB();
+    const db = await openDBWithRetry();
+    if (!db) return memPut(movement);
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).put(movement);
@@ -74,7 +102,8 @@ const MovementStore = {
   },
 
   async delete(id) {
-    const db = await openDB();
+    const db = await openDBWithRetry();
+    if (!db) { memDelete(id); return; }
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).delete(id);
@@ -84,7 +113,8 @@ const MovementStore = {
   },
 
   async clearAll() {
-    const db = await openDB();
+    const db = await openDBWithRetry();
+    if (!db) { memClear(); return; }
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).clear();
@@ -96,7 +126,9 @@ const MovementStore = {
   async resetAll() {
     await resetDB();
     dbPromise = null;
-  }
+  },
+
+  isMemoryMode() { return useMemoryFallback; }
 };
 
 function uid() {
