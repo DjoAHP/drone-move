@@ -426,21 +426,21 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       $("#empty-title").textContent = "Aucun mouvement";
       $("#empty-text").textContent = "Ajoutez votre premier mouvement de drone pour construire votre bibliothèque.";
       $("#btn-empty-add").hidden = false;
-      return;
-    }
-
-    if (list.length === 0) {
+    } else if (list.length === 0) {
       container.innerHTML = "";
       empty.hidden = false;
       $("#empty-title").textContent = "Aucun résultat";
       $("#empty-text").textContent = "Aucun mouvement ne correspond à ta recherche ou à ce filtre.";
       $("#btn-empty-add").hidden = true;
-      return;
+    } else {
+      empty.hidden = true;
+      container.innerHTML = "";
+      list.forEach(m => container.appendChild(renderRow(m)));
     }
 
-    empty.hidden = true;
-    container.innerHTML = "";
-    list.forEach(m => container.appendChild(renderRow(m)));
+    renderPlanChips();
+    renderQSChips();
+    updateResultsCount();
   }
 
   function renderRow(m) {
@@ -905,8 +905,51 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   $("#movement-form").addEventListener("input", () => { formDirty = true; });
   $("#movement-form").addEventListener("change", () => { formDirty = true; });
 
+  // ---------- Cascade filter rendering ----------
+  function renderPlanChips() {
+    const row = $("#filter-plan-row");
+    const hasQuickshots = allMovements.some(m => m.planType === "quickshot");
+    const hasManual = allMovements.some(m => m.planType === "manual");
+
+    if (!hasQuickshots && !hasManual) {
+      row.hidden = true;
+      return;
+    }
+    row.hidden = false;
+
+    $$("#filter-plan-chips .chip").forEach(c => {
+      c.classList.toggle("chip-active", c.dataset.plan === currentPlanType);
+    });
+  }
+
+  function renderQSChips() {
+    const row = $("#filter-qs-row");
+    row.hidden = currentPlanType !== "quickshot";
+
+    if (currentPlanType === "quickshot") {
+      $$("#filter-qs-chips .chip").forEach(c => {
+        c.classList.toggle("chip-active", c.dataset.qs === currentQuickshot);
+      });
+    } else {
+      currentQuickshot = "all";
+    }
+  }
+
+  function updateResultsCount() {
+    const count = getFilteredSorted().length;
+    const total = allMovements.length;
+    const el = $("#results-count");
+    if (total === 0) {
+      el.textContent = "";
+    } else if (count === total) {
+      el.textContent = `${total} mouvement${total > 1 ? "s" : ""}`;
+    } else {
+      el.textContent = `${count} résultat${count > 1 ? "s" : ""}`;
+    }
+  }
+
   // ---------- Filters / search / sort ----------
-  const debouncedRender = debounce(renderList, 200);
+  const debouncedRender = debounce(() => { renderList(); updateResultsCount(); }, 200);
   $("#search-input").addEventListener("input", (e) => {
     currentSearch = e.target.value;
     debouncedRender();
@@ -915,10 +958,37 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   $("#filter-chips").addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
     if (!chip) return;
-    $$(".chip").forEach(c => c.classList.remove("chip-active"));
+    $$("#filter-chips .chip").forEach(c => c.classList.remove("chip-active"));
     chip.classList.add("chip-active");
     currentFilter = chip.dataset.filter;
+    renderPlanChips();
+    renderQSChips();
     renderList();
+    updateResultsCount();
+  });
+
+  $("#filter-plan-chips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    $$("#filter-plan-chips .chip").forEach(c => c.classList.remove("chip-active"));
+    chip.classList.add("chip-active");
+    currentPlanType = chip.dataset.plan;
+    if (currentPlanType !== "quickshot") {
+      currentQuickshot = "all";
+    }
+    renderQSChips();
+    renderList();
+    updateResultsCount();
+  });
+
+  $("#filter-qs-chips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    $$("#filter-qs-chips .chip").forEach(c => c.classList.remove("chip-active"));
+    chip.classList.add("chip-active");
+    currentQuickshot = chip.dataset.qs;
+    renderList();
+    updateResultsCount();
   });
 
   const SORT_CYCLE = ["date", "name", "mode"];
@@ -929,6 +999,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     $("#btn-sort").classList.toggle("sort-active", sortMode !== "date");
     showToast("Trié par : " + SORT_LABELS[sortMode]);
     renderList();
+    updateResultsCount();
   });
 
   // ---------- FAB / empty add ----------
