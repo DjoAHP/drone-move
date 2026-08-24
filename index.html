@@ -113,6 +113,60 @@
       </svg>
     </button>
 
+    <!-- MODE PRÉSENTATION -->
+    <div id="presentation-mode" class="presentation-overlay" hidden>
+      <div class="presentation-header">
+        <button class="presentation-close" id="btn-presentation-close" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <button class="presentation-play" id="btn-presentation-play" aria-label="Play/Pause">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path class="play-icon" d="M8 5v14l11-7z"/>
+            <path class="pause-icon" d="M6 4h4v16H6zM14 4h4v16h-4z" hidden/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="presentation-body">
+        <div class="presentation-video-wrap">
+          <video id="presentation-video" class="presentation-video" loop playsinline></video>
+          <div class="presentation-no-video" id="presentation-no-video" hidden>Pas de vidéo</div>
+        </div>
+
+        <div class="presentation-info">
+          <h2 class="presentation-name" id="presentation-name"></h2>
+          <p class="presentation-subtitle" id="presentation-subtitle"></p>
+
+          <div class="presentation-stats">
+            <div class="presentation-stat">
+              <span class="presentation-stat-label">ALTITUDE</span>
+              <span class="presentation-stat-value" id="presentation-altitude">—</span>
+            </div>
+            <div class="presentation-stat">
+              <span class="presentation-stat-label">VITESSE</span>
+              <span class="presentation-stat-value" id="presentation-speed">—</span>
+            </div>
+          </div>
+
+          <div class="presentation-sticks" id="presentation-sticks" hidden>
+            <div class="presentation-sticks-header">STICKS</div>
+            <div class="presentation-sticks-row">
+              <span>Gauche: <strong id="presentation-stick-left">—</strong></span>
+              <span>Droite: <strong id="presentation-stick-right">—</strong></span>
+            </div>
+            <div class="presentation-sticks-row">
+              <span>Nacelle: <strong id="presentation-gimbal">—</strong></span>
+            </div>
+          </div>
+
+          <div class="presentation-tags" id="presentation-tags"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- MODAL: réglages de vol (lecture seule) -->

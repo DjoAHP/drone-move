@@ -470,6 +470,9 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
         <button class="remote-btn" data-action="settings" aria-label="Réglages de vol">
           <img src="icons/manette-joystick-molette.svg" alt="" width="40" height="40">
         </button>
+        <button class="btn-presentation" data-action="presentation" data-id="${m.id}" aria-label="Mode présentation">
+          <span class="btn-presentation-icon">🎬</span>
+        </button>
         <button class="menu-btn" data-action="menu" aria-label="Options">
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
         </button>
