@@ -1,6 +1,6 @@
 /* sw.js — cache l'app shell de DroneMove pour un usage hors ligne */
 
-const CACHE_NAME = "dronemove-shell-v6";
+const CACHE_NAME = "dronemove-shell-v7";
 const SHELL_FILES = [
   "./",
   "./index.html?v=4",
