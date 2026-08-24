@@ -379,7 +379,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     const m = allMovements.find(m => m.id === id);
     if (!m) return;
     m.isFavorite = !m.isFavorite;
-    db.put(m).then(() => renderList());
+    MovementStore.put(m).then(() => renderList());
   }
 
   // ---------- Rendering ----------
