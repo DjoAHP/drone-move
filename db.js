@@ -1,19 +1,18 @@
-/* db.js — accès IndexedDB pour DroneMove (avec fallback localStorage) */
+/* db.js — accès stockage pour DroneMove
+   Stratégie : IndexedDB si dispo, sinon Cache API (vidéos) + localStorage (métadonnées) */
 
 const DB_NAME = "dronemove-db";
 const DB_VERSION = 1;
 const STORE = "movements";
-const LS_KEY = "dronemove-data";
+const LS_KEY = "dronemove-meta";
+const VIDEO_CACHE = "dronemove-videos";
 
 let dbInstance = null;
-let useMemoryFallback = false;
+let storageMode = "idb"; // "idb" | "cache+ls"
 
-// ---------- IndexedDB ----------
+// ---------- Détection du mode de stockage ----------
 
-function openDB() {
-  if (useMemoryFallback) return Promise.reject(new Error("memory-only"));
-  if (dbInstance) return Promise.resolve(dbInstance);
-
+async function tryOpenIDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
@@ -24,40 +23,22 @@ function openDB() {
         store.createIndex("name", "name");
       }
     };
-    req.onsuccess = () => {
-      dbInstance = req.result;
-      resolve(dbInstance);
-    };
+    req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function resetDB() {
-  dbInstance = null;
-  return new Promise((resolve, reject) => {
-    const del = indexedDB.deleteDatabase(DB_NAME);
-    del.onsuccess = () => setTimeout(resolve, 300);
-    del.onerror = () => reject(del.error);
-  });
-}
-
-async function openDBWithRetry() {
+async function detectStorageMode() {
+  if (dbInstance) return "idb";
   try {
-    return await openDB();
-  } catch (err) {
-    console.warn("IndexedDB open failed, resetting:", err);
-    try {
-      await resetDB();
-      return await openDB();
-    } catch (err2) {
-      console.warn("Reset failed, falling back to localStorage:", err2);
-      useMemoryFallback = true;
-      return null;
-    }
+    dbInstance = await tryOpenIDB();
+    return "idb";
+  } catch {
+    return "cache+ls";
   }
 }
 
-// ---------- localStorage helpers ----------
+// ---------- localStorage (métadonnées uniquement) ----------
 
 function lsLoad() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
@@ -69,32 +50,83 @@ function lsSave(list) {
   catch (e) { console.error("localStorage save failed:", e); }
 }
 
-async function blobToBase64(blob) {
+// ---------- Cache API (vidéos) ----------
+
+async function cachePutVideo(id, blob) {
+  const cache = await caches.open(VIDEO_CACHE);
+  const response = new Response(blob, { headers: { "Content-Type": blob.type || "video/mp4" } });
+  await cache.put(new Request(`video://${id}`), response);
+}
+
+async function cacheGetVideo(id) {
+  const cache = await caches.open(VIDEO_CACHE);
+  const resp = await cache.match(new Request(`video://${id}`));
+  return resp ? await resp.blob() : null;
+}
+
+async function cacheDeleteVideo(id) {
+  const cache = await caches.open(VIDEO_CACHE);
+  await cache.delete(new Request(`video://${id}`));
+}
+
+async function cacheClearAll() {
+  await caches.delete(VIDEO_CACHE);
+}
+
+// ---------- IndexedDB CRUD ----------
+
+function idbGetAll() {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
+    const tx = dbInstance.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
   });
 }
 
-async function base64ToBlob(dataUrl) {
-  const res = await fetch(dataUrl);
-  return res.blob();
+function idbGet(id) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbPut(movement) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(movement);
+    tx.oncomplete = () => resolve(movement);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function idbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function idbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 // ---------- MovementStore ----------
 
 const MovementStore = {
   async getAll() {
-    const db = await openDBWithRetry();
-    if (!db) return lsLoad();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readonly");
-      const req = tx.objectStore(STORE).getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
+    const mode = await detectStorageMode();
+    if (mode === "idb") return idbGetAll();
+    return lsLoad();
   },
 
   async getAllMetadata() {
@@ -106,71 +138,57 @@ const MovementStore = {
   },
 
   async get(id) {
-    const db = await openDBWithRetry();
-    if (!db) {
-      const m = lsLoad().find(x => x.id === id) || null;
-      if (m && m._videoBase64) m.videoBlob = await base64ToBlob(m._videoBase64);
-      return m;
-    }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readonly");
-      const req = tx.objectStore(STORE).get(id);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
+    const mode = await detectStorageMode();
+    if (mode === "idb") return idbGet(id);
+    const m = lsLoad().find(x => x.id === id) || null;
+    if (m) m.videoBlob = await cacheGetVideo(id);
+    return m;
   },
 
   async put(movement) {
-    const db = await openDBWithRetry();
-    if (!db) {
-      const raw = lsLoad();
-      const idx = raw.findIndex(x => x.id === movement.id);
-      const entry = { ...movement };
-      if (movement.videoBlob instanceof Blob) {
-        entry._videoBase64 = await blobToBase64(movement.videoBlob);
-      } else if (idx >= 0 && raw[idx]._videoBase64) {
-        entry._videoBase64 = raw[idx]._videoBase64;
-      }
-      delete entry.videoBlob;
-      if (idx >= 0) raw[idx] = entry; else raw.push(entry);
-      lsSave(raw);
-      return movement;
+    const mode = await detectStorageMode();
+
+    if (mode === "idb") {
+      return idbPut(movement);
     }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(movement);
-      tx.oncomplete = () => resolve(movement);
-      tx.onerror = () => reject(tx.error);
-    });
+
+    // Cache API + localStorage
+    const raw = lsLoad();
+    const idx = raw.findIndex(x => x.id === movement.id);
+    const meta = { ...movement };
+    delete meta.videoBlob;
+
+    if (movement.videoBlob instanceof Blob) {
+      await cachePutVideo(movement.id, movement.videoBlob);
+    }
+
+    if (idx >= 0) raw[idx] = meta; else raw.push(meta);
+    lsSave(raw);
+    return movement;
   },
 
   async delete(id) {
-    const db = await openDBWithRetry();
-    if (!db) { lsSave(lsLoad().filter(x => x.id !== id)); return; }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    const mode = await detectStorageMode();
+    if (mode === "idb") return idbDelete(id);
+    lsSave(lsLoad().filter(x => x.id !== id));
+    await cacheDeleteVideo(id);
   },
 
   async clearAll() {
-    const db = await openDBWithRetry();
-    if (!db) { localStorage.removeItem(LS_KEY); return; }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    const mode = await detectStorageMode();
+    if (mode === "idb") return idbClear();
+    localStorage.removeItem(LS_KEY);
+    await cacheClearAll();
   },
 
   async resetAll() {
-    await resetDB();
+    dbInstance = null;
+    try { await new Promise((r, j) => { const r2 = indexedDB.deleteDatabase(DB_NAME); r2.onsuccess = r; r2.onerror = j; }); } catch {}
+    localStorage.removeItem(LS_KEY);
+    await cacheClearAll();
   },
 
-  isMemoryMode() { return useMemoryFallback; }
+  isMemoryMode() { return false; }
 };
 
 function uid() {
