@@ -951,6 +951,76 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     }
   }
 
+  // ---------- MODE PRÉSENTATION ----------
+  function openPresentationMode(movement) {
+    const overlay = $("#presentation-mode");
+    const video = $("#presentation-video");
+    const noVideo = $("#presentation-no-video");
+    const playBtn = $("#btn-presentation-play");
+
+    $("#presentation-name").textContent = movement.name || "Sans nom";
+
+    const modeLabel = { cine: "Ciné", normal: "Normal", sport: "Sport" };
+    const planLabel = movement.planType === "quickshot" ? "QuickShots" : "Manuel";
+    let subtitle = modeLabel[movement.remoteMode] || movement.remoteMode;
+    subtitle += " · " + planLabel;
+    if (movement.planType === "quickshot" && movement.quickshotSubmode) {
+      subtitle += " — " + movement.quickshotSubmode.charAt(0).toUpperCase() + movement.quickshotSubmode.slice(1);
+    }
+    $("#presentation-subtitle").textContent = subtitle;
+
+    $("#presentation-altitude").textContent = movement.altitude != null ? movement.altitude + "m" : "—";
+    $("#presentation-speed").textContent = movement.speed != null ? movement.speed + " km/h" : "—";
+
+    const sticksEl = $("#presentation-sticks");
+    if (movement.planType === "manual") {
+      sticksEl.hidden = false;
+      $("#presentation-stick-left").textContent = movement.manualLeftStick || "—";
+      $("#presentation-stick-right").textContent = movement.manualRightStick || "—";
+      $("#presentation-gimbal").textContent = movement.gimbalDegrees != null ? movement.gimbalDegrees + "°" : "—";
+    } else {
+      sticksEl.hidden = true;
+    }
+
+    const tagsEl = $("#presentation-tags");
+    if (movement.tags && movement.tags.length) {
+      tagsEl.innerHTML = movement.tags.map(t =>
+        `<span class="tag-chip">${escapeHtml(t)}</span>`
+      ).join("");
+      tagsEl.hidden = false;
+    } else {
+      tagsEl.hidden = true;
+    }
+
+    if (movement.videoBlob) {
+      video.src = URL.createObjectURL(movement.videoBlob);
+      video.hidden = false;
+      noVideo.hidden = true;
+      video.play().catch(() => {});
+      playBtn.dataset.playing = "true";
+    } else {
+      video.hidden = true;
+      noVideo.hidden = false;
+      playBtn.dataset.playing = "false";
+    }
+
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePresentationMode() {
+    const overlay = $("#presentation-mode");
+    const video = $("#presentation-video");
+
+    video.pause();
+    if (video.src) {
+      URL.revokeObjectURL(video.src);
+      video.src = "";
+    }
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+
   // ---------- Filters / search / sort ----------
   const debouncedRender = debounce(() => { renderList(); updateResultsCount(); }, 200);
   $("#search-input").addEventListener("input", (e) => {
@@ -1030,6 +1100,35 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     textEl.textContent = "Estimation indisponible sur ce navigateur";
     fillEl.style.width = "0%";
   }
+
+  // Présentation — event listeners
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-presentation");
+    if (btn) {
+      const m = allMovements.find(m => m.id === btn.dataset.id);
+      if (m) openPresentationMode(m);
+    }
+  });
+
+  $("#btn-presentation-close").addEventListener("click", closePresentationMode);
+
+  $("#btn-presentation-play").addEventListener("click", () => {
+    const video = $("#presentation-video");
+    const playBtn = $("#btn-presentation-play");
+    if (video.paused) {
+      video.play();
+      playBtn.dataset.playing = "true";
+    } else {
+      video.pause();
+      playBtn.dataset.playing = "false";
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("#presentation-mode").hidden) {
+      closePresentationMode();
+    }
+  });
 
   // ---------- Export ----------
   $("#btn-export").addEventListener("click", async () => {
