@@ -374,6 +374,14 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     });
   }
 
+  // ---------- Favorites ----------
+  function toggleFavorite(id) {
+    const m = allMovements.find(m => m.id === id);
+    if (!m) return;
+    m.isFavorite = !m.isFavorite;
+    db.put(m).then(() => renderList());
+  }
+
   // ---------- Rendering ----------
   function getFilteredSorted() {
     let list = allMovements.slice();
@@ -411,6 +419,11 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     } else {
       list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }
+
+    // Séparer favoris / non-favoris, favoris en haut
+    const favorites = list.filter(m => m.isFavorite);
+    const others = list.filter(m => !m.isFavorite);
+    list = [...favorites, ...others];
 
     return list;
   }
@@ -460,7 +473,11 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
         <span class="thumb-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>
       </button>
       <div class="row-main">
-        <p class="row-name">${escapeHtml(m.name)}</p>
+        <p class="row-name">${escapeHtml(m.name)}
+          <button class="btn-favorite ${m.isFavorite ? 'is-favorite' : ''}" data-id="${m.id}" aria-label="Favori">
+            ${m.isFavorite ? '★' : '☆'}
+          </button>
+        </p>
         <div class="row-meta">
           <span class="badge ${badgeClass}">${badgeText}</span>
           ${tagsText ? `<span class="row-tags">${escapeHtml(tagsText)}</span>` : ""}
@@ -888,14 +905,18 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       gimbalDegrees: planType === "manual" ? gimbalDegrees : null,
       tags,
       notes: $("#f-notes").value.trim() || null,
+      isFavorite: false,
       createdAt: Date.now()
     };
 
-    // preserve original createdAt when editing
+    // preserve original createdAt and isFavorite when editing
     const existingId = $("#f-id").value;
     if (existingId) {
       const original = allMovements.find(m => m.id === existingId);
-      if (original) movement.createdAt = original.createdAt;
+      if (original) {
+        movement.createdAt = original.createdAt;
+        movement.isFavorite = original.isFavorite;
+      }
     }
 
     await MovementStore.put(movement);
@@ -1106,6 +1127,14 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     textEl.textContent = "Estimation indisponible sur ce navigateur";
     fillEl.style.width = "0%";
   }
+
+  // Favori — event listeners
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-favorite");
+    if (btn) {
+      toggleFavorite(btn.dataset.id);
+    }
+  });
 
   // Présentation — event listeners
   document.addEventListener("click", (e) => {
