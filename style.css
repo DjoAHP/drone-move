@@ -881,3 +881,19 @@ button, input, select, textarea {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* ========== ONLINE INDICATOR ========== */
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  vertical-align: middle;
+  margin-left: var(--space-1);
+  transition: background 0.3s;
+}
+
+.online-dot.offline {
+  background: #ef4444;
+}

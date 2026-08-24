@@ -1307,5 +1307,18 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     }
   }
 
+  // ---------- Online indicator ----------
+  function updateOnlineStatus() {
+    const dot = $("#online-dot");
+    if (!dot) return;
+    const online = navigator.onLine;
+    dot.classList.toggle("offline", !online);
+    dot.title = online ? "En ligne" : "Hors ligne";
+  }
+
+  window.addEventListener("online", updateOnlineStatus);
+  window.addEventListener("offline", updateOnlineStatus);
+  updateOnlineStatus();
+
   init();
 })();
