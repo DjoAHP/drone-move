@@ -1178,10 +1178,10 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   });
 
   // Présentation — event listeners
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const btn = e.target.closest(".btn-presentation");
     if (btn) {
-      const m = allMovements.find(m => m.id === btn.dataset.id);
+      const m = await MovementStore.get(btn.dataset.id);
       if (m) openPresentationMode(m);
     }
   });
