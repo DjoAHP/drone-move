@@ -420,18 +420,38 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }
 
-    // Séparer favoris / non-favoris, favoris en haut
-    const favorites = list.filter(m => m.isFavorite);
-    const others = list.filter(m => !m.isFavorite);
-    list = [...favorites, ...others];
+    // Grouper par projet
+    const groups = {};
+    list.forEach(m => {
+      const key = m.project || "";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
 
-    return list;
+    // Trier les groupes par nom ("" en dernier)
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b, "fr");
+    });
+
+    // Dans chaque groupe, favoris d'abord
+    return sortedKeys.map(key => ({
+      project: key || null,
+      label: key || "Sans projet",
+      movements: groups[key].sort((a, b) => {
+        if (a.isFavorite && !b.isFavorite) return -1;
+        if (!a.isFavorite && b.isFavorite) return 1;
+        return 0;
+      })
+    }));
   }
 
   function renderList() {
-    const list = getFilteredSorted();
+    const groups = getFilteredSorted();
     const container = $("#list-container");
     const empty = $("#empty-state");
+    const totalCount = groups.reduce((sum, g) => sum + g.movements.length, 0);
 
     if (allMovements.length === 0) {
       container.innerHTML = "";
@@ -439,7 +459,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       $("#empty-title").textContent = "Aucun mouvement";
       $("#empty-text").textContent = "Ajoutez votre premier mouvement de drone pour construire votre bibliothèque.";
       $("#btn-empty-add").hidden = false;
-    } else if (list.length === 0) {
+    } else if (totalCount === 0) {
       container.innerHTML = "";
       empty.hidden = false;
       $("#empty-title").textContent = "Aucun résultat";
@@ -448,12 +468,19 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     } else {
       empty.hidden = true;
       container.innerHTML = "";
-      list.forEach(m => container.appendChild(renderRow(m)));
+      groups.forEach(group => {
+        const sep = document.createElement("div");
+        sep.className = "group-separator";
+        sep.textContent = group.label;
+        container.appendChild(sep);
+        group.movements.forEach(m => container.appendChild(renderRow(m)));
+      });
     }
 
     renderPlanChips();
     renderQSChips();
     updateResultsCount();
+    updateProjectDatalist();
   }
 
   function renderRow(m) {
@@ -757,6 +784,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     $("#movement-form").reset();
     $("#f-id").value = "";
     $("#f-video-current").textContent = "";
+    if ($("#f-project")) $("#f-project").value = "";
     editingVideoBlob = null;
     editingThumb = null;
     manualDirections = { left: "", right: "", nacelle: 0 };
@@ -845,6 +873,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       $("#f-gimbal").value = movement.gimbalDegrees != null ? movement.gimbalDegrees : "";
       $("#f-tags").value = (movement.tags || []).join(", ");
       $("#f-notes").value = movement.notes || "";
+      if ($("#f-project")) $("#f-project").value = movement.project || "";
 
       manualDirections.left = movement.manualLeftStick || "";
       manualDirections.right = movement.manualRightStick || "";
@@ -906,6 +935,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       gimbalDegrees: planType === "manual" ? gimbalDegrees : null,
       tags,
       notes: $("#f-notes").value.trim() || null,
+      project: $("#f-project") ? $("#f-project").value.trim() || null : null,
       isFavorite: false,
       createdAt: Date.now()
     };
@@ -961,7 +991,8 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   }
 
   function updateResultsCount() {
-    const count = getFilteredSorted().length;
+    const groups = getFilteredSorted();
+    const count = groups.reduce((sum, g) => sum + g.movements.length, 0);
     const total = allMovements.length;
     const el = $("#results-count");
     if (total === 0) {
@@ -1047,6 +1078,15 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     }
     overlay.hidden = true;
     document.body.style.overflow = "";
+  }
+
+  // ---------- Autocomplete projet ----------
+  function updateProjectDatalist() {
+    const datalist = $("#project-list");
+    if (!datalist) return;
+    const projects = [...new Set(allMovements.map(m => m.project).filter(Boolean))];
+    projects.sort((a, b) => a.localeCompare(b, "fr"));
+    datalist.innerHTML = projects.map(p => `<option value="${escapeHtml(p)}">`).join("");
   }
 
   // ---------- Filters / search / sort ----------
