@@ -186,6 +186,34 @@ button, input, select, textarea {
 .sort-btn svg { width: 18px; height: 18px; }
 .sort-btn.sort-active { color: var(--accent); border-color: var(--accent); }
 
+/* Cascade filter rows */
+.filter-row-cascade {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+  margin-bottom: 0;
+}
+
+.filter-row-cascade:not([hidden]) {
+  max-height: 80px;
+  opacity: 1;
+  margin-bottom: var(--space-2);
+}
+
+.chips-wrap {
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Results counter */
+.results-count {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+  padding: var(--space-1) 0 var(--space-2);
+}
+
 /* LIST */
 .list-container {
   display: flex;
