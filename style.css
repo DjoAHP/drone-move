@@ -624,3 +624,214 @@ button, input, select, textarea {
   z-index: 300;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
+
+/* ========== MODE PRÉSENTATION ========== */
+.presentation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #0b0f14;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.presentation-overlay[hidden] {
+  display: none;
+}
+
+.presentation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  position: sticky;
+  top: 0;
+  background: #0b0f14;
+  z-index: 1;
+}
+
+.presentation-close,
+.presentation-play {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.presentation-close:active,
+.presentation-play:active {
+  background: rgba(255,255,255,0.2);
+}
+
+.presentation-close svg,
+.presentation-play svg {
+  width: 22px;
+  height: 22px;
+}
+
+.presentation-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--space-4) var(--space-6);
+  gap: var(--space-5);
+}
+
+/* Vidéo */
+.presentation-video-wrap {
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+.presentation-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.presentation-no-video {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: var(--text-base);
+}
+
+/* Infos */
+.presentation-info {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.presentation-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.presentation-subtitle {
+  font-size: var(--text-base);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+/* Stats */
+.presentation-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.presentation-stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.presentation-stat-label {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.presentation-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Sticks */
+.presentation-sticks {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.presentation-sticks-header {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-2);
+}
+
+.presentation-sticks-row {
+  display: flex;
+  gap: var(--space-5);
+  font-size: var(--text-base);
+  color: var(--text-dim);
+  margin-bottom: var(--space-1);
+}
+
+.presentation-sticks-row strong {
+  color: var(--text);
+}
+
+/* Tags */
+.presentation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+/* Bouton 🎬 dans la liste */
+.btn-presentation {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-presentation svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-presentation:active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Masquer play-icon / pause-icon selon état */
+.presentation-play[data-playing="true"] .play-icon { display: none; }
+.presentation-play[data-playing="true"] .pause-icon { display: block; }
+.presentation-play[data-playing="false"] .play-icon { display: block; }
+.presentation-play[data-playing="false"] .pause-icon { display: none; }
