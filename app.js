@@ -1009,7 +1009,6 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     const overlay = $("#presentation-mode");
     const video = $("#presentation-video");
     const noVideo = $("#presentation-no-video");
-    const playBtn = $("#btn-presentation-play");
 
     if (video.src) {
       URL.revokeObjectURL(video.src);
@@ -1056,11 +1055,9 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       video.hidden = false;
       noVideo.hidden = true;
       video.play().catch(() => {});
-      playBtn.dataset.playing = "true";
     } else {
       video.hidden = true;
       noVideo.hidden = false;
-      playBtn.dataset.playing = "false";
     }
 
     overlay.hidden = false;
@@ -1187,18 +1184,6 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   });
 
   $("#btn-presentation-close").addEventListener("click", closePresentationMode);
-
-  $("#btn-presentation-play").addEventListener("click", () => {
-    const video = $("#presentation-video");
-    const playBtn = $("#btn-presentation-play");
-    if (video.paused) {
-      video.play();
-      playBtn.dataset.playing = "true";
-    } else {
-      video.pause();
-      playBtn.dataset.playing = "false";
-    }
-  });
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !$("#presentation-mode").hidden) {

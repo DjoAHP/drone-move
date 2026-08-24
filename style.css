@@ -649,7 +649,7 @@ button, input, select, textarea {
 
 .presentation-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: var(--space-3) var(--space-4);
   position: sticky;
@@ -658,8 +658,7 @@ button, input, select, textarea {
   z-index: 1;
 }
 
-.presentation-close,
-.presentation-play {
+.presentation-close {
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -673,13 +672,11 @@ button, input, select, textarea {
   transition: background 0.15s;
 }
 
-.presentation-close:active,
-.presentation-play:active {
+.presentation-close:active {
   background: rgba(255,255,255,0.2);
 }
 
-.presentation-close svg,
-.presentation-play svg {
+.presentation-close svg {
   width: 22px;
   height: 22px;
 }
@@ -839,12 +836,6 @@ button, input, select, textarea {
   color: var(--accent);
   border-color: var(--accent);
 }
-
-/* Masquer play-icon / pause-icon selon état */
-.presentation-play[data-playing="true"] .play-icon { display: none; }
-.presentation-play[data-playing="true"] .pause-icon { display: block; }
-.presentation-play[data-playing="false"] .play-icon { display: block; }
-.presentation-play[data-playing="false"] .pause-icon { display: none; }
 
 /* ========== FAVORIS ========== */
 .btn-favorite {
