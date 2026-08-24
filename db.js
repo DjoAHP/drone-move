@@ -54,19 +54,20 @@ function lsSave(list) {
 
 async function cachePutVideo(id, blob) {
   const cache = await caches.open(VIDEO_CACHE);
+  const url = `https://dronemove.local/video/${id}`;
   const response = new Response(blob, { headers: { "Content-Type": blob.type || "video/mp4" } });
-  await cache.put(new Request(`video://${id}`), response);
+  await cache.put(url, response);
 }
 
 async function cacheGetVideo(id) {
   const cache = await caches.open(VIDEO_CACHE);
-  const resp = await cache.match(new Request(`video://${id}`));
+  const resp = await cache.match(`https://dronemove.local/video/${id}`);
   return resp ? await resp.blob() : null;
 }
 
 async function cacheDeleteVideo(id) {
   const cache = await caches.open(VIDEO_CACHE);
-  await cache.delete(new Request(`video://${id}`));
+  await cache.delete(`https://dronemove.local/video/${id}`);
 }
 
 async function cacheClearAll() {
