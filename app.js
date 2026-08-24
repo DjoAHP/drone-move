@@ -473,11 +473,12 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
         <span class="thumb-play"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>
       </button>
       <div class="row-main">
-        <p class="row-name">${escapeHtml(m.name)}
+        <div class="row-name">
+          <span class="row-name-text">${escapeHtml(m.name)}</span>
           <button class="btn-favorite ${m.isFavorite ? 'is-favorite' : ''}" data-id="${m.id}" aria-label="Favori">
             ${m.isFavorite ? '★' : '☆'}
           </button>
-        </p>
+        </div>
         <div class="row-meta">
           <span class="badge ${badgeClass}">${badgeText}</span>
           ${tagsText ? `<span class="row-tags">${escapeHtml(tagsText)}</span>` : ""}

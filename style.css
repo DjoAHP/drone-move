@@ -263,12 +263,18 @@ button, input, select, textarea {
   min-width: 0;
 }
 .row-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+}
+.row-name-text {
   font-size: var(--text-base);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0 0 var(--space-1);
+  min-width: 0;
 }
 .row-meta {
   display: flex;
@@ -835,3 +841,31 @@ button, input, select, textarea {
 .presentation-play[data-playing="true"] .pause-icon { display: block; }
 .presentation-play[data-playing="false"] .play-icon { display: block; }
 .presentation-play[data-playing="false"] .pause-icon { display: none; }
+
+/* ========== FAVORIS ========== */
+.btn-favorite {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-favorite:active {
+  transform: scale(1.2);
+}
+
+.btn-favorite.is-favorite {
+  color: #f59e0b;
+}
+
+.favorites-separator {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-2) 0;
+  opacity: 0.5;
+}
