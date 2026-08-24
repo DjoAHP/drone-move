@@ -8,6 +8,8 @@
   let currentFilter = "all";
   let currentSearch = "";
   let sortMode = "date"; // "date" | "name" | "mode"
+  let currentPlanType = "all";     // "all" | "manual" | "quickshot"
+  let currentQuickshot = "all";    // "all" | "dronie" | "rocket" | "circle" | "boomerang" | "helix" | "asteroid"
   let pendingDeleteId = null;
   let activeStickTarget = null; // for manual joystick picker state during form editing
   let manualDirections = { left: "", right: "", nacelle: 0 };
@@ -376,10 +378,22 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   function getFilteredSorted() {
     let list = allMovements.slice();
 
+    // Filtre par mode télécommande
     if (currentFilter !== "all") {
       list = list.filter(m => m.remoteMode === currentFilter);
     }
 
+    // Filtre par type de plan
+    if (currentPlanType !== "all") {
+      list = list.filter(m => m.planType === currentPlanType);
+    }
+
+    // Filtre par sous-mode QuickShots
+    if (currentQuickshot !== "all") {
+      list = list.filter(m => m.quickshotSubmode === currentQuickshot);
+    }
+
+    // Recherche texte (nom + tags)
     if (currentSearch.trim()) {
       const q = currentSearch.trim().toLowerCase();
       list = list.filter(m => {
@@ -389,6 +403,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
       });
     }
 
+    // Tri
     if (sortMode === "name") {
       list.sort((a, b) => a.name.localeCompare(b.name, "fr"));
     } else if (sortMode === "mode") {
