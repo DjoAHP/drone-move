@@ -1299,7 +1299,19 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
   }
 
   async function init() {
-    await reloadMovements();
+    try {
+      await reloadMovements();
+    } catch (err) {
+      console.warn("IndexedDB error, attempting recovery:", err);
+      try {
+        await MovementStore.resetAll();
+        await reloadMovements();
+        showToast("Base de données réinitialisée (données perdues).");
+      } catch (err2) {
+        console.error("Recovery failed:", err2);
+        showToast("Erreur de base de données. Vide le cache du navigateur.");
+      }
+    }
     // Pre-load manette SVG so it's ready when form opens
     loadManetteSVG();
     if ("serviceWorker" in navigator) {

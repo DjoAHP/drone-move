@@ -24,6 +24,16 @@ function openDB() {
   return dbPromise;
 }
 
+/** Ferme et supprime la base corrompue, puis réessaie */
+async function resetDB() {
+  dbPromise = null;
+  return new Promise((resolve, reject) => {
+    const del = indexedDB.deleteDatabase(DB_NAME);
+    del.onsuccess = () => resolve();
+    del.onerror = () => reject(del.error);
+  });
+}
+
 const MovementStore = {
   async getAll() {
     const db = await openDB();
@@ -81,6 +91,11 @@ const MovementStore = {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+  },
+
+  async resetAll() {
+    await resetDB();
+    dbPromise = null;
   }
 };
 
