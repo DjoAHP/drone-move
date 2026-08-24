@@ -958,6 +958,11 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     const noVideo = $("#presentation-no-video");
     const playBtn = $("#btn-presentation-play");
 
+    if (video.src) {
+      URL.revokeObjectURL(video.src);
+      video.src = "";
+    }
+
     $("#presentation-name").textContent = movement.name || "Sans nom";
 
     const modeLabel = { cine: "Ciné", normal: "Normal", sport: "Sport" };
@@ -993,6 +998,7 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     }
 
     if (movement.videoBlob) {
+      video.loop = true;
       video.src = URL.createObjectURL(movement.videoBlob);
       video.hidden = false;
       noVideo.hidden = true;
