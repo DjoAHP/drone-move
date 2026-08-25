@@ -3,6 +3,20 @@
 
 # Superpowers development artifacts
 .superpowers/
+.superpowers/sdd/
 
-# Node modules (if using npx/npm locally)
+# AI agent instructions (local)
+AGENTS.md
+
+# Development planning & specs
+docs/superpowers/
+
+# Node modules
 node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
