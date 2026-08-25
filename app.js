@@ -848,36 +848,40 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
     }
   });
 
-  function openForm(mode, movement) {
+  async function openForm(mode, movement) {
     resetForm();
     $("#form-title").textContent = mode === "edit" ? "Modifier le mouvement" : "Ajouter un mouvement";
 
     if (mode === "edit" && movement) {
-      $("#f-id").value = movement.id;
-      $("#f-name").value = movement.name || "";
-      $("#f-mode").value = movement.remoteMode || "normal";
-      $("#f-altitude").value = movement.altitude != null ? movement.altitude : "";
-      $("#f-speed").value = movement.speed != null ? movement.speed : "36";
-      setSegmented("f-plantype", movement.planType || "manual");
-      togglePlanBlocks(movement.planType || "manual");
-      $("#f-quickshot").value = movement.quickshotSubmode || "dronie";
-      toggleQuickshotFields(movement.quickshotSubmode || "dronie");
+      // Fetch full movement (with videoBlob) from IndexedDB
+      const full = await MovementStore.get(movement.id);
+      const m = full || movement;
+
+      $("#f-id").value = m.id;
+      $("#f-name").value = m.name || "";
+      $("#f-mode").value = m.remoteMode || "normal";
+      $("#f-altitude").value = m.altitude != null ? m.altitude : "";
+      $("#f-speed").value = m.speed != null ? m.speed : "36";
+      setSegmented("f-plantype", m.planType || "manual");
+      togglePlanBlocks(m.planType || "manual");
+      $("#f-quickshot").value = m.quickshotSubmode || "dronie";
+      toggleQuickshotFields(m.quickshotSubmode || "dronie");
 
       // Populate quickshot settings
-      const qs = movement.quickshotSettings || {};
+      const qs = m.quickshotSettings || {};
       if (qs.distance != null) $("#f-qs-distance").value = qs.distance;
       if (qs.rocketAltitude != null) $("#f-qs-rocket-altitude").value = qs.rocketAltitude;
       if (qs.direction) $("#f-qs-direction").value = qs.direction;
       if (qs.helixRadius != null) $("#f-qs-helix-radius").value = qs.helixRadius;
 
-      $("#f-gimbal").value = movement.gimbalDegrees != null ? movement.gimbalDegrees : "";
-      $("#f-tags").value = (movement.tags || []).join(", ");
-      $("#f-notes").value = movement.notes || "";
-      if ($("#f-project")) $("#f-project").value = movement.project || "";
+      $("#f-gimbal").value = m.gimbalDegrees != null ? m.gimbalDegrees : "";
+      $("#f-tags").value = (m.tags || []).join(", ");
+      $("#f-notes").value = m.notes || "";
+      if ($("#f-project")) $("#f-project").value = m.project || "";
 
-      manualDirections.left = movement.manualLeftStick || "";
-      manualDirections.right = movement.manualRightStick || "";
-      manualDirections.nacelle = movement.gimbalDegrees ? (movement.gimbalDegrees > 0 ? 1 : -1) : 0;
+      manualDirections.left = m.manualLeftStick || "";
+      manualDirections.right = m.manualRightStick || "";
+      manualDirections.nacelle = m.gimbalDegrees ? (m.gimbalDegrees > 0 ? 1 : -1) : 0;
 
       // Wait for SVG to load then update visual
       loadManetteSVG().then(() => {
@@ -886,9 +890,9 @@ const SPEED_LABELS = { slow: "Lente", normal: "Normale", fast: "Rapide" };
         updateNacelleVisual();
       });
 
-      editingVideoBlob = movement.videoBlob || null;
-      editingThumb = movement.thumbnail || null;
-      if (movement.videoBlob) $("#f-video-current").textContent = "Vidéo actuelle conservée (sélectionne un fichier pour la remplacer).";
+      editingVideoBlob = m.videoBlob || null;
+      editingThumb = m.thumbnail || null;
+      if (m.videoBlob) $("#f-video-current").textContent = "Vidéo actuelle conservée (sélectionne un fichier pour la remplacer).";
     }
 
     openModal("modal-form");
